@@ -21,7 +21,7 @@ var records = parse(fs.readFileSync(argv.input)).map((r, idx) => {
   }
 
   try{
-    
+
     let m = moment(r[0], 'MM/DD/YYYY HH:mm:ss');
     if(m.isValid()){
       r[0] = m;
@@ -29,14 +29,14 @@ var records = parse(fs.readFileSync(argv.input)).map((r, idx) => {
     else{
       throw new Error("first col is not a valid date");
     }
-    
+
     // coerce numberst to be actual numbers
     for(let ii = 1; ii < r.length; ii++){
       if(isNumeric(r[ii])){
         r[ii] = +r[ii];
       }
     }
-  } 
+  }
   catch(e){
     console.log(e.message);
     return null;
@@ -57,8 +57,8 @@ let averages = records.map((r, idx) => {
     return r;
   }
   let oldestDateInRange = moment(r[0]).subtract(averageDuration);
-  let ii = records.find((rr, index) => { 
-    return (index > 0) && rr[0].isSameOrBefore(oldestDateInRange)
+  let ii = records.find((rr, index) => {
+    return (index > 0) && rr[0].isSameOrAfter(oldestDateInRange)
   });
   if(!ii){
     ii = -1;
@@ -67,7 +67,9 @@ let averages = records.map((r, idx) => {
     ii = records.indexOf(ii);
   }
   let newRow = [r[0]];
- 
+
+  // console.log(ii + 1, idx + 1);
+
   let rows = records.slice(ii + 1, idx + 1);
   for(let col = 1; col < r.length; col++){
     if(ignoreColumns.indexOf(col) >= 0){
