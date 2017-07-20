@@ -8,6 +8,17 @@ const fs = require('fs');
 const averageDuration = moment.duration(argv.duration || 'PT10M');
 const ignoreColumns = argv.ignoreColumns ? argv.ignoreColumns.split(",").map(v => +v) : [];
 const outputFilename = argv.output || "output.csv";
+const inputFilename = argv.input || "input.csv"
+if(argv.help){
+  console.log(`
+  optional arguments:
+    --input="input.csv"
+    --ouput="output.csv"
+    --duration="PT10M"      <-- ISO8601 duration
+    --ignoreColumns="7,8,9" <-- comma separated list of (0-based) column indexes to ignore in averaging
+`);
+      process.exit(0);
+}
 
 console.log(averageDuration.toString(), ignoreColumns);
 
@@ -15,7 +26,7 @@ function isNumeric(n) {
   return !isNaN(parseFloat(n)) && isFinite(n);
 }
 
-var records = parse(fs.readFileSync(argv.input)).map((r, idx) => {
+var records = parse(fs.readFileSync(inputFilename)).map((r, idx) => {
   if(idx === 0){
     return r;
   }
