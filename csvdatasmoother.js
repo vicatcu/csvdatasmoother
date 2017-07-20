@@ -17,10 +17,10 @@ if(argv.help){
     --duration="PT10M"      <-- ISO8601 duration
     --ignoreColumns="7,8,9" <-- comma separated list of (0-based) column indexes to ignore in averaging
 `);
-      process.exit(0);
+  process.exit(0);
 }
 
-console.log(averageDuration.toString(), ignoreColumns);
+console.log(inputFilename, outputFilename, averageDuration.toString(), ignoreColumns);
 
 function isNumeric(n) {
   return !isNaN(parseFloat(n)) && isFinite(n);
