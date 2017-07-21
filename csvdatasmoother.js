@@ -10,6 +10,18 @@ const ignoreColumns = argv.ignoreColumns ? argv.ignoreColumns.split(",").map(v =
 const outputFilename = argv.output || "output.csv";
 const inputFilename = argv.input || "input.csv"
 const augmented = argv.augmented || false;
+const dropDateRanges = argv.drop ? argv.drop.split(",").map((v) => {
+  let range = v.split("-");
+  if(range.length !== 2){
+    return null;
+  }
+  let start = moment(range[0].trim(), "MM/DD/YYYY HH:mm:ss");
+  let end = moment(range[1].trim(), "MM/DD/YYYY HH:mm:ss");
+  if(!start.isValid() || !end.isValid()){
+    return null;
+  }
+  return {start, end};
+}).filter(v => v !== null) : [];
 
 if(argv.help){
   console.log(`
@@ -19,6 +31,7 @@ if(argv.help){
     --duration="PT10M"      <-- ISO8601 duration
     --ignoreColumns="7,8,9" <-- comma separated list of (0-based) column indexes to ignore in averaging
     --augmented             <-- keeps the unaveraged data alongside the averaged data
+    --drop="MM/DD/YYYY HH:mm:ss - MM/DD/YYYY HH:mm:ss, MM/DD/YYYY HH:mm:ss - MM/DD/YYYY HH:mm:ss, etc"
 `);
   process.exit(0);
 }
@@ -29,6 +42,8 @@ function isNumeric(n) {
   return !isNaN(parseFloat(n)) && isFinite(n);
 }
 
+// convert timestamps to moments, reject rows with unparseable timestamps
+// convert other fields to numeric where possible
 var records = parse(fs.readFileSync(inputFilename)).map((r, idx) => {
   if(idx === 0){
     return r;
@@ -62,6 +77,7 @@ var records = parse(fs.readFileSync(inputFilename)).map((r, idx) => {
 
 let last_index = 1;
 
+// crunch the numbers
 let averages = records.map((r, idx) => {
   if(idx % 100){
     process.stdout.clearLine();  // clear current text
@@ -83,7 +99,20 @@ let averages = records.map((r, idx) => {
     return r;
   }
 
-  let oldestDateInRange = moment(r[0]).subtract(averageDuration);
+  let rowMoment = moment(r[0]);
+
+  let taboo = false;
+  dropDateRanges.forEach((range) => {
+    if(rowMoment.isSameOrAfter(range.start) && rowMoment.isSameOrBefore(range.end)){
+      taboo = true;
+    }
+  });
+
+  if(taboo){
+    return null;
+  }
+
+  let oldestDateInRange = rowMoment.subtract(averageDuration);
   let record_subset = records.slice(last_index);
   let ii = record_subset.find(rr =>  rr[0].isSameOrAfter(oldestDateInRange));
   // console.log(idx, last_index, oldestDateInRange.format(), ii[0].format());
