@@ -9,6 +9,8 @@ const averageDuration = moment.duration(argv.duration || 'PT10M');
 const ignoreColumns = argv.ignoreColumns ? argv.ignoreColumns.split(",").map(v => +v) : [];
 const outputFilename = argv.output || "output.csv";
 const inputFilename = argv.input || "input.csv"
+const augmented = argv.augmented || false;
+
 if(argv.help){
   console.log(`
   optional arguments:
@@ -16,11 +18,12 @@ if(argv.help){
     --ouput="output.csv"
     --duration="PT10M"      <-- ISO8601 duration
     --ignoreColumns="7,8,9" <-- comma separated list of (0-based) column indexes to ignore in averaging
+    --augmented             <-- keeps the unaveraged data alongside the averaged data
 `);
   process.exit(0);
 }
 
-console.log(inputFilename, outputFilename, averageDuration.toString(), ignoreColumns);
+console.log(inputFilename, outputFilename, averageDuration.toString(), ignoreColumns, augmented);
 
 function isNumeric(n) {
   return !isNaN(parseFloat(n)) && isFinite(n);
@@ -57,6 +60,8 @@ var records = parse(fs.readFileSync(inputFilename)).map((r, idx) => {
 })
 .filter(r => r !== null); // remove entries with invalid dates
 
+let last_index = 1;
+
 let averages = records.map((r, idx) => {
   if(idx % 100){
     process.stdout.clearLine();  // clear current text
@@ -65,33 +70,65 @@ let averages = records.map((r, idx) => {
   }
 
   if( idx === 0 ) {
+    if(augmented){
+      let newR = [r[0]];
+      for(let jj = 1; jj < r.length; jj++){
+        newR.push(r[jj]);
+        if(ignoreColumns.indexOf(jj) < 0){
+          newR.push(r[jj]+'_avg');
+        }
+      }
+      return newR;
+    }
     return r;
   }
+
   let oldestDateInRange = moment(r[0]).subtract(averageDuration);
-  let ii = records.find((rr, index) => {
-    return (index > 0) && rr[0].isSameOrAfter(oldestDateInRange)
-  });
+  let record_subset = records.slice(last_index);
+  let ii = record_subset.find(rr =>  rr[0].isSameOrAfter(oldestDateInRange));
+  // console.log(idx, last_index, oldestDateInRange.format(), ii[0].format());
+
   if(!ii){
     ii = -1;
   }
   else{
-    ii = records.indexOf(ii);
+    ii = record_subset.indexOf(ii) + last_index;
+    last_index = ii;
   }
   let newRow = [r[0]];
 
-  // console.log(ii + 1, idx + 1);
+  // console.log(ii, idx + 1);
 
-  let rows = records.slice(ii + 1, idx + 1);
+  let rows = records.slice(ii, idx + 1);
+
+  if(rows.length == 0){
+    return null;
+  }
+
   for(let col = 1; col < r.length; col++){
     if(ignoreColumns.indexOf(col) >= 0){
       newRow.push(records[idx][col]);
     }
     else{
-      newRow.push(jStat.mean(rows.filter(rr => isNumeric(rr[col])).map(rr => rr[col])));
+      let nontrivial_data = rows.filter(rr => isNumeric(rr[col]));
+      if(!nontrivial_data.length){
+        if(augmented){
+          newRow.push(records[idx][col]);
+        }
+        newRow.push("---");
+      }
+      else{
+        if(augmented){
+          newRow.push(records[idx][col]);
+        }
+        newRow.push(jStat.mean(nontrivial_data.map(rr => rr[col])));
+      }
     }
   }
   return newRow;
-}).map((rr, idx) => {
+})
+.filter(rr => rr !== null)
+.map((rr, idx) => {
   if(idx === 0){
     return rr;
   }
