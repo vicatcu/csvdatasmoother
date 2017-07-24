@@ -99,7 +99,7 @@ let linest = stats.map((row, idx) => {
 let prefix = records[0][voltageColumn1].split("[")[0];
 let obj = {};
 
-fs.unlinkSync(outputFilename+'.txt');
+try{ fs.unlinkSync(outputFilename+'.txt'); } catch (e) { }
 
 obj[prefix] = {commands: []};
 obj[prefix].commands.push(`${prefix}_blv clear`);
