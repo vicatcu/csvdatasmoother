@@ -7,9 +7,9 @@ const fs = require('fs');
 
 // expects "smoothed" input data, with ppb columns ignored
 
-const outputFilename = argv.output || "output.json";
 const inputFilename = argv.input || "input.csv"
-const clusterTemperatureEpsilon = argv.epsilon || 1.0;
+const outputFilename = argv.output || (inputFilename+".json");
+const clusterTemperatureEpsilon = argv.epsilon || 0.5;
 const temperatureColumn = argv.temperatureCol || 2;
 const voltageColumn1 = argv.voltageCol1 || 10;
 const voltageColumn2 = argv.voltageCol2 || 12;
@@ -19,12 +19,20 @@ let clusteredResults = {};
 
 var records = parse(fs.readFileSync(inputFilename));
 
+function slope_intercept(x1, y1, x2, y2){
+  let ret = {
+    slope: (y1 - y2) / (x1 - x2),
+  };
+  ret.intercept = y1 - ret.slope * x1;
+  return ret;
+}
+
 function isNumeric(n) {
   return !isNaN(parseFloat(n)) && isFinite(n);
 }
 
 function cluster(row){
-  
+
   if(!isNumeric(row[temperatureColumn])){
     return;
   }
@@ -54,8 +62,6 @@ let stats = Object.keys(clusteredResults).map((clusterKey) => {
   }
   let ret = {};
 
-  console.log(clusteredResults[clusterKey].map(r => r[voltageColumn2]))
-
   objKeyPrefixes.forEach((ok) => {
     ret[ok+'_mean'] = jStat.mean(clusteredResults[clusterKey].map(r => +r[objKeyIndex[ok]]).filter(v => isNumeric(v)));
     ret[ok+'_stdev'] = jStat.stdev(clusteredResults[clusterKey].map(r => +r[objKeyIndex[ok]]).filter(v => isNumeric(v)), true);
@@ -64,5 +70,49 @@ let stats = Object.keys(clusteredResults).map((clusterKey) => {
   return ret;
 });
 
-console.log("Clusters: ", clusterTemperatures);
-console.log("Stats: ", stats);
+// first sort the stats data by mean temperature
+stats = stats.sort((a, b) => {
+  if(a.temperature_mean < b.temperature_mean){
+    return -1;
+  }
+  return +1;
+});
+
+// ok now that you have temperature ordered cluster data,
+// compute slopes and intercepts for adjacent bins implied by them
+let linest = stats.map((row, idx) => {
+  if(idx > 0){
+    let ret = { temperature: stats[idx-1].temperature_mean };
+    let tmp = slope_intercept(row.temperature_mean, row.voltage1_mean,
+      stats[idx-1].temperature_mean, stats[idx-1].voltage1_mean);
+    ret.voltage1_slope = tmp.slope;
+    ret.voltage1_intercept = tmp.intercept;
+    tmp = slope_intercept(row.temperature_mean, row.voltage2_mean,
+      stats[idx-1].temperature_mean, stats[idx-1].voltage2_mean);
+    ret.voltage2_slope = tmp.slope;
+    ret.voltage2_intercept = tmp.intercept;
+    return ret;
+  }
+  return null;
+}).filter(v => v !== null);
+
+let prefix = records[0][voltageColumn1].split("[")[0];
+let obj = {};
+obj[prefix] = {commands: []};
+obj[prefix].commands.push(`${prefix}_blv clear`);
+linest.forEach((r) => {
+  obj[prefix].commands.push(`${prefix}_blv add ${r.temperature.toFixed(8)} ${r.voltage1_slope.toFixed(8)} ${r.voltage1_intercept.toFixed(8)}`);
+})
+console.log();
+
+prefix = records[0][voltageColumn2].split("[")[0];
+obj[prefix] = {commands: []};
+obj[prefix].commands.push(`${prefix}_blv clear`);
+linest.forEach((r) => {
+  obj[prefix].commands.push(`${prefix}_blv add ${r.temperature.toFixed(8)} ${r.voltage2_slope.toFixed(8)} ${r.voltage2_intercept.toFixed(8)}`);
+})
+
+// console.log("Clusters: ", clusterTemperatures);
+// console.log("Stats: ", stats);
+// console.log("Linest: ", linest);
+fs.writeFileSync(outputFilename, JSON.stringify(obj, null, 2));
