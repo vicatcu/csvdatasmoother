@@ -5,8 +5,13 @@ const stringify = require('csv-stringify');
 const jStat = require('jStat');
 const fs = require('fs');
 
+function isNumeric(n) {
+  return !isNaN(parseFloat(n)) && isFinite(n);
+}
+
+const derivativeFunctions = argv.functions ? argv.functions.split(",") : ['mean'];
 const averageDuration = moment.duration(argv.duration || 'PT10M');
-const ignoreColumns = argv.ignoreColumns ? argv.ignoreColumns.split(",").map(v => +v) : [];
+const ignoreColumns = argv.ignoreColumns ? argv.ignoreColumns.split(",").map(v => +v).filter(v => isNumeric(v)) : [];
 const outputFilename = argv.output || "output.csv";
 const inputFilename = argv.input || "input.csv"
 const augmented = argv.augmented || false;
@@ -37,10 +42,6 @@ if(argv.help){
 }
 
 console.log(inputFilename, outputFilename, averageDuration.toString(), ignoreColumns, augmented);
-
-function isNumeric(n) {
-  return !isNaN(parseFloat(n)) && isFinite(n);
-}
 
 // convert timestamps to moments, reject rows with unparseable timestamps
 // convert other fields to numeric where possible
@@ -77,6 +78,17 @@ var records = parse(fs.readFileSync(inputFilename)).map((r, idx) => {
 
 let last_index = 1;
 
+if(argv.ignoreColumns){
+  let originalIgnoreColumns = argv.ignoreColumns.split(',');
+  if((originalIgnoreColumns.length >= 2) && (originalIgnoreColumns.slice(-1)[0] === '+')){
+    for(let jj = +(originalIgnoreColumns.slice(-2)[0]) + 1; jj < records[0].length; jj++){
+      ignoreColumns.push(jj);
+    }
+  }
+  console.log(ignoreColumns);
+  console.log();
+}
+
 // crunch the numbers
 let averages = records.map((r, idx) => {
   if(idx % 100){
@@ -91,7 +103,14 @@ let averages = records.map((r, idx) => {
       for(let jj = 1; jj < r.length; jj++){
         newR.push(r[jj]);
         if(ignoreColumns.indexOf(jj) < 0){
-          newR.push(r[jj]+'_avg');
+
+          if(derivativeFunctions.indexOf('mean') >= 0){
+            newR.push(r[jj]+'_avg');
+          }
+
+          if(derivativeFunctions.indexOf('stdev') >= 0){
+            newR.push(r[jj]+'_stdev');
+          }
         }
       }
       return newR;
@@ -150,7 +169,15 @@ let averages = records.map((r, idx) => {
         if(augmented){
           newRow.push(records[idx][col]);
         }
-        newRow.push(jStat.mean(nontrivial_data.map(rr => rr[col])));
+
+        if(derivativeFunctions.indexOf('mean') >= 0){
+          newRow.push(jStat.mean(nontrivial_data.map(rr => rr[col])));
+        }
+
+        if(derivativeFunctions.indexOf('stdev') >= 0){
+          newRow.push(jStat.stdev(nontrivial_data.map(rr => rr[col]), true));
+        }
+
       }
     }
   }
