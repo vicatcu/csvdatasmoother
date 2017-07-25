@@ -9,6 +9,7 @@ function isNumeric(n) {
   return !isNaN(parseFloat(n)) && isFinite(n);
 }
 
+const nostatus = !!argv.nostatus;
 const derivativeFunctions = argv.functions ? argv.functions.split(",") : ['mean'];
 const averageDuration = moment.duration(argv.duration || 'PT10M');
 const ignoreColumns = argv.ignoreColumns ? argv.ignoreColumns.split(",").map(v => +v).filter(v => isNumeric(v)) : [];
@@ -91,7 +92,7 @@ if(argv.ignoreColumns){
 
 // crunch the numbers
 let averages = records.map((r, idx) => {
-  if(idx % 100){
+  if(((idx % 100) == 0) && !nostatus){
     process.stdout.clearLine();  // clear current text
     process.stdout.cursorTo(0);  // move cursor to beginning of line
     process.stdout.write(`${idx} of ${records.length} (${(100*idx/records.length).toFixed(1)}%)`);

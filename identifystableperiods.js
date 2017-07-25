@@ -5,6 +5,7 @@ const stringify = require('csv-stringify');
 const jStat = require('jStat');
 const fs = require('fs');
 
+const nostatus = !!argv.nostatus;
 const inputFilename = argv.input || "input.csv"
 const outputFilename = argv.output || inputFilename;
 const temperatureColumn = argv.temperatureCol || 6; //stdev
@@ -26,7 +27,7 @@ function isNumeric(n) {
 
 // momentification of timestamps
 var records = parse(fs.readFileSync(inputFilename)).map((r, idx, all) => {
-  if(idx % 100){
+  if(((idx % 100) == 0) && !nostatus){
     process.stdout.clearLine();  // clear current text
     process.stdout.cursorTo(0);  // move cursor to beginning of line
     process.stdout.write(`${idx} of ${all.length} (${(100*idx/all.length).toFixed(1)}%)`);
@@ -79,7 +80,7 @@ let lastPeakStdev = 0;
 let momentOfLastPeakStdev = null;
 let lastStateTransitionMomentFromBelowToAbove = null;
 records.forEach((row, idx) => {
-  if(idx % 100){
+  if(((idx % 100) == 0) && !nostatus){
     process.stdout.clearLine();  // clear current text
     process.stdout.cursorTo(0);  // move cursor to beginning of line
     process.stdout.write(`${idx} of ${records.length} (${(100*idx/records.length).toFixed(1)}%)`);
