@@ -46,7 +46,7 @@ console.log(inputFilename, outputFilename, averageDuration.toString(), ignoreCol
 
 // convert timestamps to moments, reject rows with unparseable timestamps
 // convert other fields to numeric where possible
-var records = parse(fs.readFileSync(inputFilename)).map((r, idx) => {
+let records = parse(fs.readFileSync(inputFilename)).map((r, idx) => {
   if(idx === 0){
     return r;
   }
@@ -172,11 +172,15 @@ let averages = records.map((r, idx) => {
         }
 
         if(derivativeFunctions.indexOf('mean') >= 0){
-          newRow.push(jStat.mean(nontrivial_data.map(rr => rr[col])));
+          let values = nontrivial_data.map(rr => +rr[col]).filter(v => isNumeric(v));
+          let mean = (values.length > 0) ? jStat.mean(values) : '---';
+          newRow.push(mean);
         }
 
         if(derivativeFunctions.indexOf('stdev') >= 0){
-          newRow.push(jStat.stdev(nontrivial_data.map(rr => rr[col]), true));
+          let values = nontrivial_data.map(rr => +rr[col]).filter(v => isNumeric(v));
+          let stdev = (values.length > 1) ? jStat.stdev(values, true) : '---';
+          newRow.push(stdev);
         }
 
       }

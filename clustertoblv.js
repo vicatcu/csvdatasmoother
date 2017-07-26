@@ -17,7 +17,7 @@ const voltageColumn2 = argv.voltageCol2 || 12;
 let clusterTemperatures = [];
 let clusteredResults = {};
 
-var records = parse(fs.readFileSync(inputFilename));
+let records = parse(fs.readFileSync(inputFilename));
 
 function slope_intercept(x1, y1, x2, y2){
   let ret = {

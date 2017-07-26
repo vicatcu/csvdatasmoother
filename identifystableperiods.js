@@ -8,7 +8,7 @@ const fs = require('fs');
 const nostatus = !!argv.nostatus;
 const inputFilename = argv.input || "input.csv"
 const outputFilename = argv.output || inputFilename;
-const temperatureColumn = argv.temperatureCol || 6; //stdev
+const temperatureColumn = argv.temperatureCol || 4; //stdev
 const temperatureStdevAboveThreshold = argv.abovethreshold || 0.09;
 const temperatureStdevBelowThreshold = argv.belowthreshold || 0.05;
 let changingDurationLimit = argv.limit || 'PT60M';
@@ -26,7 +26,7 @@ function isNumeric(n) {
 }
 
 // momentification of timestamps
-var records = parse(fs.readFileSync(inputFilename)).map((r, idx, all) => {
+let records = parse(fs.readFileSync(inputFilename)).map((r, idx, all) => {
   if(((idx % 100) == 0) && !nostatus){
     process.stdout.clearLine();  // clear current text
     process.stdout.cursorTo(0);  // move cursor to beginning of line
@@ -180,7 +180,9 @@ records.forEach((row, idx) => {
   }
 });
 
-transition_points.push(lastStateTransitionMomentFromBelowToAbove);
+if(lastStateTransitionMomentFromBelowToAbove){
+  transition_points.push(lastStateTransitionMomentFromBelowToAbove);
+}
 
 console.log();
 transition_points.forEach((m) => {
