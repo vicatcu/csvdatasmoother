@@ -55,15 +55,53 @@ function generateScatterChart(data, type){
     }
   };
 
+  let datasets = [];
+
+  let blvs = data.blv.slice(1);
+  blvs.forEach((blv, idx) => {
+    let params = blv.split(' ').slice(2).map(v => +v);
+    let nextParams = blvs[idx+1] ? blvs[idx+1].split(' ').slice(2).map(v => +v) : [data.stats.slice(-1)[0].x];
+    let firstTemp = params[0];
+    let secondTemp = nextParams[0];
+
+    let colors = [
+      'rgba(255, 0, 0, 1.0)',
+      'rgba(0, 255, 0, 1.0)',
+      'rgba(0, 0, 255, 1.0)',
+      'rgba(255, 140, 0, 1.0)',
+      'rgba(255, 0, 255, 1.0)',
+      'rgba(0, 255, 255, 1.0)',
+    ]
+
+    let dataset = {
+        label: `${idx}`,
+        data: [{
+          x: firstTemp,
+          y: params[1]*firstTemp + params[2]
+        },{
+          x: secondTemp,
+          y: params[1]*secondTemp + params[2]
+        }],
+        backgroundColor: 'rgba(0, 0, 0, 0.0)',
+        borderColor: colors[idx]
+    };
+    console.log(JSON.stringify(dataset, null, 2));
+    datasets.push(dataset);
+  });
+
+  datasets.push({
+      label: `${type.toUpperCase()} BLV vs Temperature[degC]`,
+      data: data.stats,
+      // backgroundColor: 'rgba(0, 0, 0, 0.0)',
+      borderColor: 'rgba(0, 0, 0, 1.0)'
+  });
+
   // 600x600 canvas size
   let chartNode = new ChartjsNode(600, 600);
   return chartNode.drawChart({
       type: 'scatter',
       data: {
-          datasets: [{
-              label: `${type.toUpperCase()} BLV vs Temperature`,
-              data
-          }]
+          datasets
       },
       options: {
           scales: {
@@ -184,19 +222,29 @@ runCommand(`node csvdatasmoother.js --ignoreColumns=7,8,9 --augmented ${drop} --
   let first_type = otherLines[0].split("_")[0];
   let second_type = otherLines.slice(-1)[0].split("_")[0];
 
-  return generateScatterChart(data.map((r) => {
-    return {
-      x: +r.temperature_mean,
-      y: +r.voltage1_mean
-    };
-  }), first_type)
-  .then(() => {
-    return generateScatterChart(data.map((r) => {
+  let datasets = {
+    stats: data.map((r) => {
       return {
         x: +r.temperature_mean,
-        y: +r.voltage2_mean
+        y: +r.voltage1_mean
       };
-    }), second_type);
+    }),
+    blv: otherLines.slice(0, otherLines.length / 2)
+  }
+
+  return generateScatterChart(datasets, first_type)
+  .then(() => {
+    datasets = {
+      stats: data.map((r) => {
+        return {
+          x: +r.temperature_mean,
+          y: +r.voltage2_mean
+        };
+      }),
+      blv: otherLines.slice(otherLines.length / 2)
+    }
+
+    return generateScatterChart(datasets, second_type);
   });
 
 })
