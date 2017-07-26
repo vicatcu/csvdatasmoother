@@ -85,7 +85,7 @@ function generateScatterChart(data, type){
         backgroundColor: 'rgba(0, 0, 0, 0.0)',
         borderColor: colors[idx]
     };
-    console.log(JSON.stringify(dataset, null, 2));
+    // console.log(JSON.stringify(dataset, null, 2));
     datasets.push(dataset);
   });
 
@@ -93,7 +93,7 @@ function generateScatterChart(data, type){
       label: `${type.toUpperCase()} BLV vs Temperature[degC]`,
       data: data.stats,
       // backgroundColor: 'rgba(0, 0, 0, 0.0)',
-      borderColor: 'rgba(0, 0, 0, 0.0)'
+      borderColor: 'rgba(0, 0, 0, 1.0)'
   });
 
   // 600x600 canvas size
