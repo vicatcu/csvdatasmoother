@@ -93,7 +93,7 @@ function generateScatterChart(data, type){
       label: `${type.toUpperCase()} BLV vs Temperature[degC]`,
       data: data.stats,
       // backgroundColor: 'rgba(0, 0, 0, 0.0)',
-      borderColor: 'rgba(0, 0, 0, 1.0)'
+      borderColor: 'rgba(0, 0, 0, 0.0)'
   });
 
   // 600x600 canvas size
