@@ -180,7 +180,7 @@ records.forEach((row, idx) => {
   }
 });
 
-if(lastStateTransitionMomentFromBelowToAbove){
+if(lastStateTransitionMomentFromBelowToAbove && lastStateTransitionMomentFromBelowToAbove.isAfter(transition_points.slice(-1)[0])){
   transition_points.push(lastStateTransitionMomentFromBelowToAbove);
 }
 
