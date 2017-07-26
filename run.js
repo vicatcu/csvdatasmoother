@@ -3,7 +3,7 @@ const parse = require('csv-parse/lib/sync');
 const exec = require('child_process').exec;
 const argv = require('minimist')(process.argv.slice(2));
 const input = argv.input || "input";
-const dropPercentAfter = (argv.percentAfter || 35) / 100;
+const dropPercentAfter = (argv.percentAfter || 45) / 100;
 const dropPercentBefore = (argv.percentBefore || 25) / 100;
 const fs = require('fs');
 
@@ -35,11 +35,14 @@ function runCommand(cmd, options){
 //   console.log(error.message, error.stack);
 // });
 
+console.log("Running csvdatasmoother with 10M data smoothing...");
 runCommand(`node csvdatasmoother.js --ignoreColumns=7,8,9 --augmented ${drop} --input="${input}.csv" --output="${input}.smoothed.csv" --nostatus --functions="mean,stdev" --duration="PT10M"`)
 .then((result) => {
+  console.log("Running csvdatasmoother with 1H stdev smoothing...");
   return runCommand(`node csvdatasmoother.js --ignoreColumns=1,2,4,+ --augmented --input="${input}.smoothed.csv" --output="${input}.smoothed-heavy.csv" --nostatus --functions="mean" --duration="PT1H"`)
 })
 .then((result) => {
+  console.log("Running identifystableperiods...");
   return runCommand(`node identifystableperiods.js --input="${input}.smoothed-heavy.csv" --nostatus`)
 })
 .then((result) => {
@@ -96,10 +99,15 @@ runCommand(`node csvdatasmoother.js --ignoreColumns=7,8,9 --augmented ${drop} --
     .join(",");
   drop = `--drop="${drop}"`;
 
+  console.log("Running csvdatasmoother with drop durations...");
   return runCommand(`node csvdatasmoother.js --ignoreColumns=7,8,9 --augmented ${drop} --input="${input}.csv" --output="${input}.smoothed-culled.csv" --nostatus --functions="mean,stdev" --duration="PT10M"`);
 })
 .then((result) => {
+  console.log("Running clustertoblv...");
   return runCommand(`node clustertoblv.js --input ${input}.smoothed-culled.csv`);
+})
+.then((result) => {
+  console.log(JSON.stringify(result.stdout.split("\n").filter(l => l.trim()), null, 2));
 })
 .catch((error) => {
   console.log(error.message, error.stack);

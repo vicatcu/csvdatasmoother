@@ -63,8 +63,10 @@ let stats = Object.keys(clusteredResults).map((clusterKey) => {
   let ret = {};
 
   objKeyPrefixes.forEach((ok) => {
-    ret[ok+'_mean'] = jStat.mean(clusteredResults[clusterKey].map(r => +r[objKeyIndex[ok]]).filter(v => isNumeric(v)));
-    ret[ok+'_stdev'] = jStat.stdev(clusteredResults[clusterKey].map(r => +r[objKeyIndex[ok]]).filter(v => isNumeric(v)), true);
+    let values = clusteredResults[clusterKey].map(r => +r[objKeyIndex[ok]]).filter(v => isNumeric(v));
+    ret[ok+'_mean'] = jStat.mean(values);
+    ret[ok+'_stdev'] = jStat.stdev(values, true);
+    ret[ok+'_count'] = values.length;
   });
 
   return ret;
@@ -77,6 +79,8 @@ stats = stats.sort((a, b) => {
   }
   return +1;
 });
+
+console.log("Stats: ", JSON.stringify(stats, null, 2));
 
 // ok now that you have temperature ordered cluster data,
 // compute slopes and intercepts for adjacent bins implied by them
