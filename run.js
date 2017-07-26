@@ -98,6 +98,9 @@ runCommand(`node csvdatasmoother.js --ignoreColumns=7,8,9 --augmented ${drop} --
 
   return runCommand(`node csvdatasmoother.js --ignoreColumns=7,8,9 --augmented ${drop} --input="${input}.csv" --output="${input}.smoothed-culled.csv" --nostatus --functions="mean,stdev" --duration="PT10M"`);
 })
+.then((result) => {
+  return runCommand(`node clustertoblv.js --input ${input}.smoothed-culled.csv`);
+})
 .catch((error) => {
   console.log(error.message, error.stack);
 });

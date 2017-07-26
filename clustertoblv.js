@@ -11,8 +11,8 @@ const inputFilename = argv.input || "input.csv"
 const outputFilename = argv.output || inputFilename;
 const clusterTemperatureEpsilon = argv.epsilon || 0.5;
 const temperatureColumn = argv.temperatureCol || 2;
-const voltageColumn1 = argv.voltageCol1 || 10;
-const voltageColumn2 = argv.voltageCol2 || 12;
+const voltageColumn1 = argv.voltageCol1 || 14;
+const voltageColumn2 = argv.voltageCol2 || 17;
 
 let clusterTemperatures = [];
 let clusteredResults = {};
